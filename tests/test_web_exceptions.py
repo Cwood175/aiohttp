@@ -273,5 +273,5 @@ def test_unicode_text_body_unauthorized() -> None:
 
 
 def test_multiline_reason() -> None:
-    with pytest.raises(ValueError, match=r"Reason cannot contain \\n"):
+    with pytest.raises(ValueError, match=r"Reason cannot contain \n"):
         web.HTTPOk(reason="Bad\r\nInjected-header: foo")

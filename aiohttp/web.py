@@ -287,7 +287,7 @@ else:
 # Only display warning when using -Wdefault, -We, -X dev or similar.
 warnings.filterwarnings("ignore", category=NotAppKeyWarning, append=True)
 
-HostSequence = TypingIterable[str]
+HostSequence = list[str]
 
 
 async def _run_app(
