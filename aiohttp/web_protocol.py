@@ -4,6 +4,7 @@ import sys
 import traceback
 import warnings
 from collections import deque
+from collections.abc import Awaitable, Sequence
 from contextlib import suppress
 from html import escape as html_escape
 from http import HTTPStatus
@@ -11,11 +12,9 @@ from logging import Logger
 from typing import (
     TYPE_CHECKING,
     Any,
-    Awaitable,
     Callable,
     Deque,
     Optional,
-    Sequence,
     Tuple,
     Type,
     Union,
@@ -45,7 +44,7 @@ from .web_log import AccessLogger
 from .web_request import BaseRequest
 from .web_response import Response, StreamResponse
 
-__all__ = ("RequestHandler", "RequestPayloadError", "PayloadAccessError")
+__all__ = ("PayloadAccessError", "RequestHandler", "RequestPayloadError")
 
 if TYPE_CHECKING:
     import ssl
@@ -142,36 +141,35 @@ class RequestHandler(BaseProtocol):
     """
 
     __slots__ = (
-        "_request_count",
+        "_cache",
+        "_close",
+        "_current_request",
+        "_force_close",
+        "_handler_waiter",
         "_keepalive",
-        "_manager",
-        "_request_handler",
-        "_request_factory",
-        "_tcp_keepalive",
-        "_next_keepalive_close_time",
         "_keepalive_handle",
         "_keepalive_timeout",
         "_lingering_time",
-        "_messages",
+        "_logging_enabled",
+        "_manager",
         "_message_tail",
-        "_handler_waiter",
-        "_waiter",
-        "_task_handler",
-        "_upgrade",
+        "_messages",
+        "_next_keepalive_close_time",
         "_payload_parser",
+        "_request_count",
+        "_request_factory",
+        "_request_handler",
+        "_request_in_progress",
         "_request_parser",
-        "_reading_paused",
-        "logger",
-        "debug",
+        "_task_handler",
+        "_tcp_keepalive",
+        "_timeout_ceil_threshold",
+        "_upgrade",
+        "_waiter",
         "access_log",
         "access_logger",
-        "_close",
-        "_force_close",
-        "_current_request",
-        "_timeout_ceil_threshold",
-        "_request_in_progress",
-        "_logging_enabled",
-        "_cache",
+        "debug",
+        "logger",
     )
 
     def __init__(
@@ -701,8 +699,7 @@ class RequestHandler(BaseProtocol):
                 self.log_exception("Missing return statement on request handler")
             else:
                 self.log_exception(
-                    "Web-handler should return a response instance, "
-                    "got {!r}".format(resp)
+                    f"Web-handler should return a response instance, got {resp!r}"
                 )
             exc = HTTPInternalServerError()
             resp = Response(
@@ -753,7 +750,7 @@ class RequestHandler(BaseProtocol):
 
         ct = "text/plain"
         if status == HTTPStatus.INTERNAL_SERVER_ERROR:
-            title = "{0.value} {0.phrase}".format(HTTPStatus.INTERNAL_SERVER_ERROR)
+            title = f"{HTTPStatus.INTERNAL_SERVER_ERROR.value} {HTTPStatus.INTERNAL_SERVER_ERROR.phrase}"
             msg = HTTPStatus.INTERNAL_SERVER_ERROR.description
             tb = None
             if self.debug:
@@ -766,10 +763,10 @@ class RequestHandler(BaseProtocol):
                     msg = f"<h2>Traceback:</h2>\n<pre>{tb}</pre>"
                 message = (
                     "<html><head>"
-                    "<title>{title}</title>"
-                    "</head><body>\n<h1>{title}</h1>"
-                    "\n{msg}\n</body></html>\n"
-                ).format(title=title, msg=msg)
+                    f"<title>{title}</title>"
+                    f"</head><body>\n<h1>{title}</h1>"
+                    f"\n{msg}\n</body></html>\n"
+                )
                 ct = "text/html"
             else:
                 if tb:

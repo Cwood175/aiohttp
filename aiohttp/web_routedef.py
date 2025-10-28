@@ -1,14 +1,13 @@
 import abc
 import os  # noqa
+from collections.abc import Iterator, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
     Dict,
-    Iterator,
     List,
     Optional,
-    Sequence,
     Type,
     Union,
     overload,
@@ -31,22 +30,24 @@ else:
 __all__ = (
     "AbstractRouteDef",
     "RouteDef",
-    "StaticDef",
     "RouteTableDef",
+    "StaticDef",
+    "delete",
+    "get",
     "head",
     "options",
-    "get",
-    "post",
     "patch",
+    "post",
     "put",
-    "delete",
     "route",
-    "view",
     "static",
+    "view",
 )
 
 
 class AbstractRouteDef(abc.ABC):
+    __slots__ = ()
+
     @abc.abstractmethod
     def register(self, router: UrlDispatcher) -> List[AbstractRoute]:
         pass  # pragma: no cover
