@@ -1643,6 +1643,11 @@ async def test_POST_DATA_with_explicit_formdata(aiohttp_client) -> None:
     resp.close()
 
 
+# Load the koi8-r codec at import time so its first use inside the event loop
+# does not trigger a blocking module import (flagged by blockbuster).
+import encodings.koi8_r  # noqa: E402,F401
+
+
 async def test_POST_DATA_with_charset(aiohttp_client) -> None:
     async def handler(request):
         mp = await request.multipart()

@@ -784,6 +784,14 @@ async def test_content_type_auto_header_content_length_no_skip(loop, conn) -> No
         await req.close()
 
 
+@pytest.fixture
+def koi8_r_codec() -> None:
+    # Import the koi8-r codec outside the running event loop, so the first
+    # import (and its .pyc cache write) does not trigger blockbuster.
+    "".encode("koi8-r")
+
+
+@pytest.mark.usefixtures("koi8_r_codec")
 async def test_urlencoded_formdata_charset(loop, conn) -> None:
     req = ClientRequest(
         "post",

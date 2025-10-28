@@ -1073,16 +1073,40 @@ def test_parse_set_cookie_headers_date_formats_with_attributes() -> None:
     assert result[1][1]["samesite"] == "Strict"
 
 
+def _morsel_rejects_control_chars() -> bool:
+    """Return True if the running Python's Morsel rejects control characters."""
+    from http.cookies import CookieError
+
+    try:
+        parse_set_cookie_headers([r'probe="\012"'])
+    except CookieError:
+        return True
+    return False
+
+
+_SKIP_IF_MORSEL_REJECTS_CONTROL_CHARS = pytest.mark.skipif(
+    _morsel_rejects_control_chars(),
+    reason="http.cookies.Morsel rejects control characters on this Python version",
+)
+
+
 @pytest.mark.parametrize(
     ("header", "expected_name", "expected_value", "expected_coded"),
     [
         # Test cookie values with octal escape sequences
-        (r'name="\012newline\012"', "name", "\nnewline\n", r'"\012newline\012"'),
-        (
+        pytest.param(
+            r'name="\012newline\012"',
+            "name",
+            "\nnewline\n",
+            r'"\012newline\012"',
+            marks=_SKIP_IF_MORSEL_REJECTS_CONTROL_CHARS,
+        ),
+        pytest.param(
             r'tab="\011separated\011values"',
             "tab",
             "\tseparated\tvalues",
             r'"\011separated\011values"',
+            marks=_SKIP_IF_MORSEL_REJECTS_CONTROL_CHARS,
         ),
         (
             r'mixed="hello\040world\041"',
@@ -1090,11 +1114,12 @@ def test_parse_set_cookie_headers_date_formats_with_attributes() -> None:
             "hello world!",
             r'"hello\040world\041"',
         ),
-        (
+        pytest.param(
             r'complex="\042quoted\042 text with \012 newline"',
             "complex",
             '"quoted" text with \n newline',
             r'"\042quoted\042 text with \012 newline"',
+            marks=_SKIP_IF_MORSEL_REJECTS_CONTROL_CHARS,
         ),
     ],
 )

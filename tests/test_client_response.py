@@ -368,6 +368,12 @@ async def test_response_eof_after_connection_detach(loop, session) -> None:
     assert response._connection is None
 
 
+# Encode at import time so the cp1251 codec module is imported (and its
+# .pyc written) outside the event loop; blockbuster rejects that I/O in-loop.
+CP1251_JSON_BODY = '{"тест": "пройден"}'.encode("cp1251")
+CP1251_BAD_ENCODING_BODY = '{"тестkey": "пройденvalue"}'.encode("cp1251")
+
+
 async def test_text(loop, session) -> None:
     response = ClientResponse(
         "get",
@@ -383,7 +389,7 @@ async def test_text(loop, session) -> None:
 
     def side_effect(*args, **kwargs):
         fut = loop.create_future()
-        fut.set_result('{"тест": "пройден"}'.encode("cp1251"))
+        fut.set_result(CP1251_JSON_BODY)
         return fut
 
     response._headers = {"Content-Type": "application/json;charset=cp1251"}
@@ -410,7 +416,7 @@ async def test_text_bad_encoding(loop, session) -> None:
 
     def side_effect(*args, **kwargs):
         fut = loop.create_future()
-        fut.set_result('{"тестkey": "пройденvalue"}'.encode("cp1251"))
+        fut.set_result(CP1251_BAD_ENCODING_BODY)
         return fut
 
     # lie about the encoding
@@ -470,7 +476,7 @@ async def test_text_custom_encoding(loop, session) -> None:
 
     def side_effect(*args, **kwargs):
         fut = loop.create_future()
-        fut.set_result('{"тест": "пройден"}'.encode("cp1251"))
+        fut.set_result(CP1251_JSON_BODY)
         return fut
 
     response._headers = {"Content-Type": "application/json"}
@@ -501,7 +507,7 @@ async def test_text_charset_resolver(content_type: str, loop, session) -> None:
 
     def side_effect(*args, **kwargs):
         fut = loop.create_future()
-        fut.set_result('{"тест": "пройден"}'.encode("cp1251"))
+        fut.set_result(CP1251_JSON_BODY)
         return fut
 
     response._headers = {"Content-Type": content_type}
@@ -560,7 +566,7 @@ async def test_text_after_read(loop, session) -> None:
 
     def side_effect(*args, **kwargs):
         fut = loop.create_future()
-        fut.set_result('{"тест": "пройден"}'.encode("cp1251"))
+        fut.set_result(CP1251_JSON_BODY)
         return fut
 
     response._headers = {"Content-Type": "application/json;charset=cp1251"}
@@ -587,7 +593,7 @@ async def test_json(loop, session) -> None:
 
     def side_effect(*args, **kwargs):
         fut = loop.create_future()
-        fut.set_result('{"тест": "пройден"}'.encode("cp1251"))
+        fut.set_result(CP1251_JSON_BODY)
         return fut
 
     response._headers = {"Content-Type": "application/json;charset=cp1251"}
@@ -614,7 +620,7 @@ async def test_json_extended_content_type(loop, session) -> None:
 
     def side_effect(*args, **kwargs):
         fut = loop.create_future()
-        fut.set_result('{"тест": "пройден"}'.encode("cp1251"))
+        fut.set_result(CP1251_JSON_BODY)
         return fut
 
     response._headers = {
@@ -643,7 +649,7 @@ async def test_json_custom_content_type(loop, session) -> None:
 
     def side_effect(*args, **kwargs):
         fut = loop.create_future()
-        fut.set_result('{"тест": "пройден"}'.encode("cp1251"))
+        fut.set_result(CP1251_JSON_BODY)
         return fut
 
     response._headers = {"Content-Type": "custom/type;charset=cp1251"}
