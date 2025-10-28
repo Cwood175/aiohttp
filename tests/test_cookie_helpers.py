@@ -1076,13 +1076,15 @@ def test_parse_set_cookie_headers_date_formats_with_attributes() -> None:
 @pytest.mark.parametrize(
     ("header", "expected_name", "expected_value", "expected_coded"),
     [
-        # Test cookie values with octal escape sequences
-        (r'name="\012newline\012"', "name", "\nnewline\n", r'"\012newline\012"'),
+        # Test cookie values with octal escape sequences.
+        # Octal escapes decode to printable characters only, because newer
+        # CPython releases reject control characters in Morsel values.
+        (r'name="\050paren\051"', "name", "(paren)", r'"\050paren\051"'),
         (
-            r'tab="\011separated\011values"',
-            "tab",
-            "\tseparated\tvalues",
-            r'"\011separated\011values"',
+            r'dash="\055separated\055values"',
+            "dash",
+            "-separated-values",
+            r'"\055separated\055values"',
         ),
         (
             r'mixed="hello\040world\041"',
@@ -1091,10 +1093,10 @@ def test_parse_set_cookie_headers_date_formats_with_attributes() -> None:
             r'"hello\040world\041"',
         ),
         (
-            r'complex="\042quoted\042 text with \012 newline"',
+            r'complex="\042quoted\042 text with \041 bang"',
             "complex",
-            '"quoted" text with \n newline',
-            r'"\042quoted\042 text with \012 newline"',
+            '"quoted" text with ! bang',
+            r'"\042quoted\042 text with \041 bang"',
         ),
     ],
 )
