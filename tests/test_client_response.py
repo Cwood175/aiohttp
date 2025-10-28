@@ -368,6 +368,9 @@ async def test_response_eof_after_connection_detach(loop, session) -> None:
     assert response._connection is None
 
 
+_CP1251_TEXT = '{"тест": "пройден"}'.encode("cp1251")
+
+
 async def test_text(loop, session) -> None:
     response = ClientResponse(
         "get",
@@ -383,7 +386,7 @@ async def test_text(loop, session) -> None:
 
     def side_effect(*args, **kwargs):
         fut = loop.create_future()
-        fut.set_result('{"тест": "пройден"}'.encode("cp1251"))
+        fut.set_result(_CP1251_TEXT)
         return fut
 
     response._headers = {"Content-Type": "application/json;charset=cp1251"}
@@ -393,6 +396,9 @@ async def test_text(loop, session) -> None:
     res = await response.text()
     assert res == '{"тест": "пройден"}'
     assert response._connection is None
+
+
+_CP1251_TEXT_WITH_ASCII = '{"тестkey": "пройденvalue"}'.encode("cp1251")
 
 
 async def test_text_bad_encoding(loop, session) -> None:
@@ -410,7 +416,7 @@ async def test_text_bad_encoding(loop, session) -> None:
 
     def side_effect(*args, **kwargs):
         fut = loop.create_future()
-        fut.set_result('{"тестkey": "пройденvalue"}'.encode("cp1251"))
+        fut.set_result(_CP1251_TEXT_WITH_ASCII)
         return fut
 
     # lie about the encoding
@@ -470,7 +476,7 @@ async def test_text_custom_encoding(loop, session) -> None:
 
     def side_effect(*args, **kwargs):
         fut = loop.create_future()
-        fut.set_result('{"тест": "пройден"}'.encode("cp1251"))
+        fut.set_result(_CP1251_TEXT)
         return fut
 
     response._headers = {"Content-Type": "application/json"}

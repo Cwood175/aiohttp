@@ -6,14 +6,15 @@ These are not part of the public API and may change without notice.
 """
 
 import re
+from collections.abc import Sequence
 from http.cookies import Morsel
-from typing import List, Optional, Sequence, Tuple, cast
+from typing import List, Optional, Tuple, cast
 
 from .log import internal_logger
 
 __all__ = (
-    "parse_set_cookie_headers",
     "parse_cookie_header",
+    "parse_set_cookie_headers",
     "preserve_morsel_with_coded_value",
 )
 
@@ -322,9 +323,15 @@ def parse_set_cookie_headers(headers: Sequence[str]) -> List[Tuple[str, Morsel[s
                     # bypass validation and set already validated state. This is more stable than
                     # setting protected attributes directly and unlikely to change since it would
                     # break pickling.
-                    current_morsel.__setstate__(  # type: ignore[attr-defined]
-                        {"key": key, "value": _unquote(value), "coded_value": value}
-                    )
+                    morsel_value = _unquote(value)
+                    try:
+                        current_morsel.__setstate__(  # type: ignore[attr-defined]
+                            {"key": key, "value": morsel_value, "coded_value": value}
+                        )
+                    except CookieError:
+                        # Python 3.13 validates control characters in Morsel state.
+                        current_morsel.set(key, morsel_value, value)
+
                     parsed_cookies.append((key, current_morsel))
                     morsel_seen = True
             else:
