@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from .web_response import StreamResponse
 else:
     BaseRequest = Request = Application = StreamResponse = Any
-    HTTPException = Any
+    HTTPException = Exception
 
 
 class AbstractRouter(ABC):
@@ -48,7 +48,6 @@ class AbstractRouter(ABC):
 
 
 class AbstractMatchInfo(ABC):
-
     __slots__ = ()
 
     @property  # pragma: no branch

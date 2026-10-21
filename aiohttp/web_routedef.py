@@ -44,7 +44,7 @@ class AbstractRouteDef(abc.ABC):
 _HandlerType = Union[type[AbstractView], Handler]
 
 
-@attr.s(auto_attribs=True, frozen=True, repr=False, slots=True)
+@attr.s(auto_attribs=True, frozen=True, repr=False)
 class RouteDef(AbstractRouteDef):
     method: str
     path: str
@@ -69,7 +69,7 @@ class RouteDef(AbstractRouteDef):
             ]
 
 
-@attr.s(auto_attribs=True, frozen=True, repr=False, slots=True)
+@attr.s(auto_attribs=True, frozen=True, repr=False)
 class StaticDef(AbstractRouteDef):
     prefix: str
     path: PathLike
