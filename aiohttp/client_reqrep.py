@@ -131,7 +131,6 @@ class _RequestInfo(NamedTuple):
 
 
 class RequestInfo(_RequestInfo):
-
     def __new__(
         cls,
         url: URL,
@@ -627,6 +626,13 @@ class ClientResponse(HeadersMixin):
                     await trace.send_response_chunk_received(
                         self.method, self.url, self._body
                     )
+            except asyncio.TimeoutError as exc:
+                # Underlying stream raised a timeout while reading. Ensure
+                # the response is closed and raise a clear timeout error.
+                self.close()
+                raise asyncio.TimeoutError(
+                    "Timeout on reading data from socket"
+                ) from exc
             except BaseException:
                 self.close()
                 raise

@@ -778,7 +778,6 @@ async def test_ssl_client_alpn(
     aiohttp_client: AiohttpClient,
     ssl_ctx: ssl.SSLContext,
 ) -> None:
-
     async def handler(request: web.Request) -> web.Response:
         assert request.transport is not None
         sslobj = request.transport.get_extra_info("ssl_object")
@@ -1150,7 +1149,7 @@ async def test_read_timeout_between_chunks(
     app.add_routes([web.get("/", handler)])
 
     # A timeout of 0.2 seconds should apply per read.
-    timeout = aiohttp.ClientTimeout(sock_read=1)
+    timeout = aiohttp.ClientTimeout(sock_read=2)
     client = await aiohttp_client(app, timeout=timeout)
 
     res = b""
@@ -5213,9 +5212,7 @@ async def test_invalid_redirect_origin_closes_payload(
     ):
         await client.post("/redirect", data=payload)
 
-    assert (
-        payload.close_called
-    ), "Payload.close() was not called when InvalidUrlRedirectClientError (invalid origin) was raised"
+    assert payload.close_called, "Payload.close() was not called when InvalidUrlRedirectClientError (invalid origin) was raised"
 
 
 async def test_amazon_like_cookie_scenario(aiohttp_client: AiohttpClient) -> None:

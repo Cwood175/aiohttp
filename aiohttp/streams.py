@@ -40,7 +40,6 @@ class EofStream(Exception):
 
 
 class AsyncStreamIterator(Generic[_T]):
-
     __slots__ = ("read_func",)
 
     def __init__(self, read_func: Callable[[], Awaitable[_T]]) -> None:
@@ -60,7 +59,6 @@ class AsyncStreamIterator(Generic[_T]):
 
 
 class ChunkTupleAsyncStreamIterator:
-
     __slots__ = ("_stream",)
 
     def __init__(self, stream: "StreamReader") -> None:
@@ -77,7 +75,6 @@ class ChunkTupleAsyncStreamIterator:
 
 
 class AsyncStreamReaderMixin:
-
     __slots__ = ()
 
     def __aiter__(self) -> AsyncStreamIterator[bytes]:
@@ -520,7 +517,20 @@ class StreamReader(AsyncStreamReaderMixin):
 
     def _read_nowait(self, n: int) -> bytes:
         """Read not more than n bytes, or whole buffer if n == -1"""
-        self._timer.assert_timeout()
+        try:
+            self._timer.assert_timeout()
+        except Exception as exc:
+            # Ensure timer-based timeouts are propagated to any waiter in a
+            # controlled way so they can handle the timeout consistently
+            waiter = getattr(self, "_waiter", None)
+            if waiter is not None and not waiter.done():
+                try:
+                    waiter.set_exception(exc)
+                except Exception:
+                    # If setting the waiter exception fails for any reason,
+                    # ignore and re-raise the original timeout exception.
+                    pass
+            raise
 
         chunks = []
         while self._buffer:
@@ -535,7 +545,6 @@ class StreamReader(AsyncStreamReaderMixin):
 
 
 class EmptyStreamReader(StreamReader):  # lgtm [py/missing-call-to-init]
-
     __slots__ = ("_read_eof_chunk",)
 
     def __init__(self) -> None:
