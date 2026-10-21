@@ -123,21 +123,45 @@ class FormData:
         for dispparams, headers, value in self._fields:
             try:
                 if hdrs.CONTENT_TYPE in headers:
+                    # Extract Content-Type header and remove any charset parameter
+                    ct_header = headers[hdrs.CONTENT_TYPE]
+                    charset = None
+                    if ";" in ct_header:
+                        parts = [p.strip() for p in ct_header.split(";")]
+                        main = parts[0]
+                        params = parts[1:]
+                        new_params = []
+                        for p in params:
+                            if "=" in p:
+                                k, v = p.split("=", 1)
+                                if k.strip().lower() == "charset":
+                                    # capture charset and drop it from content_type
+                                    charset = v.strip().strip('"').strip("'")
+                                    continue
+                            new_params.append(p)
+                        if new_params:
+                            content_type = main + "; " + "; ".join(new_params)
+                        else:
+                            content_type = main
+                    else:
+                        content_type = ct_header
+
+                    encoding = charset if charset is not None else self._charset
+
                     part = payload.get_payload(
                         value,
-                        content_type=headers[hdrs.CONTENT_TYPE],
+                        content_type=content_type,
                         headers=headers,
-                        encoding=self._charset,
+                        encoding=encoding,
                     )
                 else:
                     part = payload.get_payload(
                         value, headers=headers, encoding=self._charset
                     )
-            except Exception as exc:
-                raise TypeError(
-                    "Can not serialize value type: %r\n "
-                    "headers: %r\n value: %r" % (type(value), headers, value)
-                ) from exc
+            except Exception:
+                # Do not mask the original exception; re-raise to preserve
+                # the original error type and traceback for better diagnostics.
+                raise
 
             if dispparams:
                 part.set_content_disposition(
