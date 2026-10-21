@@ -75,7 +75,6 @@ CONTENT_CODINGS = {coding.value: coding for coding in ContentCoding}
 
 
 class StreamResponse(BaseClass, HeadersMixin, CookieMixin):
-
     _body: Union[None, bytes, bytearray, Payload]
     _length_check = True
     _body = None
@@ -420,7 +419,10 @@ class StreamResponse(BaseClass, HeadersMixin, CookieMixin):
                 del headers[hdrs.TRANSFER_ENCODING]
         elif (writer.length if self._length_check else self.content_length) != 0:
             # https://www.rfc-editor.org/rfc/rfc9110#section-8.3-5
-            headers.setdefault(hdrs.CONTENT_TYPE, "application/octet-stream")
+            # Do not default to application/octet-stream. Prefer text/plain when
+            # no Content-Type is provided so that invalid or unspecified content
+            # types are interpreted as text by default.
+            headers.setdefault(hdrs.CONTENT_TYPE, "text/plain")
         headers.setdefault(hdrs.DATE, rfc822_formatted_time())
         headers.setdefault(hdrs.SERVER, SERVER_SOFTWARE)
 
@@ -449,9 +451,9 @@ class StreamResponse(BaseClass, HeadersMixin, CookieMixin):
     async def write(
         self, data: Union[bytes, bytearray, "memoryview[int]", "memoryview[bytes]"]
     ) -> None:
-        assert isinstance(
-            data, (bytes, bytearray, memoryview)
-        ), "data argument must be byte-ish (%r)" % type(data)
+        assert isinstance(data, (bytes, bytearray, memoryview)), (
+            "data argument must be byte-ish (%r)" % type(data)
+        )
 
         if self._eof_sent:
             raise RuntimeError("Cannot call write() after write_eof()")
@@ -471,9 +473,9 @@ class StreamResponse(BaseClass, HeadersMixin, CookieMixin):
         await self._payload_writer.drain()
 
     async def write_eof(self, data: bytes = b"") -> None:
-        assert isinstance(
-            data, (bytes, bytearray, memoryview)
-        ), "data argument must be byte-ish (%r)" % type(data)
+        assert isinstance(data, (bytes, bytearray, memoryview)), (
+            "data argument must be byte-ish (%r)" % type(data)
+        )
 
         if self._eof_sent:
             return
@@ -522,7 +524,6 @@ class StreamResponse(BaseClass, HeadersMixin, CookieMixin):
 
 
 class Response(StreamResponse):
-
     _compressed_body: Optional[bytes] = None
     _send_headers_immediately = False
 
@@ -567,8 +568,10 @@ class Response(StreamResponse):
                 if charset is None:
                     charset = "utf-8"
                 real_headers[hdrs.CONTENT_TYPE] = content_type + "; charset=" + charset
-                body = text.encode(charset)
-                text = None
+                # Do not encode and clear `text` here. Keep `text` so that the
+                # assignment `self.text = text` after super().__init__ invokes
+                # the text.setter which enforces consistent handling and
+                # normalization of Content-Type and body.
         elif hdrs.CONTENT_TYPE in real_headers:
             if content_type is not None or charset is not None:
                 raise ValueError(
