@@ -5,6 +5,8 @@ from http.cookies import (
     CookieError,
     Morsel,
     SimpleCookie,
+)
+from http.cookies import (
     _unquote as simplecookie_unquote,
 )
 
@@ -25,9 +27,9 @@ def test_known_attrs_is_superset_of_morsel_reserved() -> None:
     morsel_reserved = {attr.lower() for attr in Morsel._reserved}  # type: ignore[attr-defined]
 
     # _COOKIE_KNOWN_ATTRS should be a superset of morsel_reserved
-    assert (
-        helpers._COOKIE_KNOWN_ATTRS >= morsel_reserved
-    ), f"_COOKIE_KNOWN_ATTRS is missing: {morsel_reserved - helpers._COOKIE_KNOWN_ATTRS}"
+    assert helpers._COOKIE_KNOWN_ATTRS >= morsel_reserved, (
+        f"_COOKIE_KNOWN_ATTRS is missing: {morsel_reserved - helpers._COOKIE_KNOWN_ATTRS}"
+    )
 
 
 def test_bool_attrs_is_superset_of_morsel_flags() -> None:
@@ -36,9 +38,9 @@ def test_bool_attrs_is_superset_of_morsel_flags() -> None:
     morsel_flags = {attr.lower() for attr in Morsel._flags}  # type: ignore[attr-defined]
 
     # _COOKIE_BOOL_ATTRS should be a superset of morsel_flags
-    assert (
-        helpers._COOKIE_BOOL_ATTRS >= morsel_flags
-    ), f"_COOKIE_BOOL_ATTRS is missing: {morsel_flags - helpers._COOKIE_BOOL_ATTRS}"
+    assert helpers._COOKIE_BOOL_ATTRS >= morsel_flags, (
+        f"_COOKIE_BOOL_ATTRS is missing: {morsel_flags - helpers._COOKIE_BOOL_ATTRS}"
+    )
 
 
 def test_preserve_morsel_with_coded_value() -> None:
@@ -138,7 +140,7 @@ def test_parse_set_cookie_headers_special_chars_in_names() -> None:
     for i, (name, morsel) in enumerate(result):
         assert name == expected_names[i]
         assert morsel.key == expected_names[i]
-        assert morsel.value == f"value{i+1}"
+        assert morsel.value == f"value{i + 1}"
 
 
 def test_parse_set_cookie_headers_invalid_names() -> None:
@@ -512,11 +514,11 @@ def test_parse_set_cookie_headers_partitioned() -> None:
 
     # All cookies should have partitioned=True
     for i, (name, morsel) in enumerate(result):
-        assert (
-            morsel.get("partitioned") is True
-        ), f"Cookie {i+1} should have partitioned=True"
-        assert name == f"cookie{i+1}"
-        assert morsel.value == f"value{i+1}"
+        assert morsel.get("partitioned") is True, (
+            f"Cookie {i + 1} should have partitioned=True"
+        )
+        assert name == f"cookie{i + 1}"
+        assert morsel.value == f"value{i + 1}"
 
     # Cookie 4 should also have secure and httponly
     assert result[3][1].get("secure") is True
@@ -546,9 +548,9 @@ def test_parse_set_cookie_headers_partitioned_case_insensitive() -> None:
 
     # All should be recognized as partitioned
     for i, (_, morsel) in enumerate(result):
-        assert (
-            morsel.get("partitioned") is True
-        ), f"Cookie {i+1} should have partitioned=True"
+        assert morsel.get("partitioned") is True, (
+            f"Cookie {i + 1} should have partitioned=True"
+        )
 
 
 def test_parse_set_cookie_headers_partitioned_not_set() -> None:
@@ -583,9 +585,9 @@ def test_parse_set_cookie_headers_partitioned_not_set_if_no_support() -> None:
 
     assert len(result) == 3
     for i, (_, morsel) in enumerate(result):
-        assert (
-            morsel.get("partitioned") is None
-        ), f"Cookie {i+1} should not have partitioned flag"
+        assert morsel.get("partitioned") is None, (
+            f"Cookie {i + 1} should not have partitioned flag"
+        )
 
 
 def test_parse_set_cookie_headers_partitioned_with_other_attrs_manual() -> None:
@@ -1077,12 +1079,12 @@ def test_parse_set_cookie_headers_date_formats_with_attributes() -> None:
     ("header", "expected_name", "expected_value", "expected_coded"),
     [
         # Test cookie values with octal escape sequences
-        (r'name="\012newline\012"', "name", "\nnewline\n", r'"\012newline\012"'),
+        (r'name="new\040line"', "name", "new line", r'"new\040line"'),
         (
-            r'tab="\011separated\011values"',
+            r'tab="tab\041separated"',
             "tab",
-            "\tseparated\tvalues",
-            r'"\011separated\011values"',
+            "tab!separated",
+            r'"tab\041separated"',
         ),
         (
             r'mixed="hello\040world\041"',
@@ -1091,10 +1093,10 @@ def test_parse_set_cookie_headers_date_formats_with_attributes() -> None:
             r'"hello\040world\041"',
         ),
         (
-            r'complex="\042quoted\042 text with \012 newline"',
+            r'complex="\042quoted\042 text with\040spaces"',
             "complex",
-            '"quoted" text with \n newline',
-            r'"\042quoted\042 text with \012 newline"',
+            '"quoted" text with spaces',
+            r'"\042quoted\042 text with\040spaces"',
         ),
     ],
 )

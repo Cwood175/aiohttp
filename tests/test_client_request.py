@@ -5,9 +5,9 @@ import pathlib
 import sys
 import urllib.parse
 import warnings
-from collections.abc import Callable, Iterable
+from collections.abc import AsyncIterator, Callable, Iterable
 from http.cookies import BaseCookie, Morsel, SimpleCookie
-from typing import Any, AsyncIterator, Optional, Protocol, Union
+from typing import Any, Optional, Protocol, Union
 from unittest import mock
 
 import pytest
@@ -784,6 +784,9 @@ async def test_content_type_auto_header_content_length_no_skip(loop, conn) -> No
         await req.close()
 
 
+import encodings.koi8_r  # noqa: F401
+
+
 async def test_urlencoded_formdata_charset(loop, conn) -> None:
     req = ClientRequest(
         "post",
@@ -1435,7 +1438,6 @@ async def test_custom_req_rep(loop) -> None:
             self.reason = "Test OK"
             self._headers = CIMultiDictProxy(CIMultiDict())
             self.cookies = SimpleCookie()
-            return
 
     called = False
 
@@ -1483,11 +1485,8 @@ async def test_custom_req_rep(loop) -> None:
 
 
 def test_verify_ssl_false_with_ssl_context(loop, ssl_ctx) -> None:
-    with pytest.warns(DeprecationWarning):
-        with pytest.raises(ValueError):
-            _merge_ssl_params(
-                None, verify_ssl=False, ssl_context=ssl_ctx, fingerprint=None
-            )
+    with pytest.warns(DeprecationWarning), pytest.raises(ValueError):
+        _merge_ssl_params(None, verify_ssl=False, ssl_context=ssl_ctx, fingerprint=None)
 
 
 def test_bad_fingerprint(loop) -> None:
