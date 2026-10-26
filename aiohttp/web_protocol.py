@@ -34,7 +34,7 @@ from .web_log import AccessLogger
 from .web_request import BaseRequest
 from .web_response import Response, StreamResponse
 
-__all__ = ("RequestHandler", "RequestPayloadError", "PayloadAccessError")
+__all__ = ("PayloadAccessError", "RequestHandler", "RequestPayloadError")
 
 if TYPE_CHECKING:
     import ssl
@@ -131,36 +131,35 @@ class RequestHandler(BaseProtocol):
     """
 
     __slots__ = (
-        "_request_count",
+        "_cache",
+        "_close",
+        "_current_request",
+        "_force_close",
+        "_handler_waiter",
         "_keepalive",
-        "_manager",
-        "_request_handler",
-        "_request_factory",
-        "_tcp_keepalive",
-        "_next_keepalive_close_time",
         "_keepalive_handle",
         "_keepalive_timeout",
         "_lingering_time",
-        "_messages",
+        "_logging_enabled",
+        "_manager",
         "_message_tail",
-        "_handler_waiter",
-        "_waiter",
-        "_task_handler",
-        "_upgrade",
+        "_messages",
+        "_next_keepalive_close_time",
         "_payload_parser",
+        "_request_count",
+        "_request_factory",
+        "_request_handler",
+        "_request_in_progress",
         "_request_parser",
-        "_reading_paused",
-        "logger",
-        "debug",
+        "_task_handler",
+        "_tcp_keepalive",
+        "_timeout_ceil_threshold",
+        "_upgrade",
+        "_waiter",
         "access_log",
         "access_logger",
-        "_close",
-        "_force_close",
-        "_current_request",
-        "_timeout_ceil_threshold",
-        "_request_in_progress",
-        "_logging_enabled",
-        "_cache",
+        "debug",
+        "logger",
     )
 
     def __init__(
@@ -294,7 +293,7 @@ class RequestHandler(BaseProtocol):
             try:
                 async with ceil_timeout(timeout):
                     await self._handler_waiter
-            except (asyncio.CancelledError, asyncio.TimeoutError):
+            except (TimeoutError, asyncio.CancelledError):
                 self._handler_waiter = None
                 if (
                     sys.version_info >= (3, 11)
@@ -310,7 +309,7 @@ class RequestHandler(BaseProtocol):
 
                 if self._task_handler is not None and not self._task_handler.done():
                     await asyncio.shield(self._task_handler)
-        except (asyncio.CancelledError, asyncio.TimeoutError):
+        except (TimeoutError, asyncio.CancelledError):
             if (
                 sys.version_info >= (3, 11)
                 and (task := asyncio.current_task())
@@ -504,7 +503,7 @@ class RequestHandler(BaseProtocol):
             resp, reset = await self.finish_response(request, resp, start_time)
         except asyncio.CancelledError:
             raise
-        except asyncio.TimeoutError as exc:
+        except TimeoutError as exc:
             self.log_debug("Request handler timed out.", exc_info=exc)
             resp = self.handle_error(request, 504)
             resp, reset = await self.finish_response(request, resp, start_time)
@@ -619,7 +618,7 @@ class RequestHandler(BaseProtocol):
                                     # read and ignore
                                     await payload.readany()
                                 now = loop.time()
-                        except (asyncio.CancelledError, asyncio.TimeoutError):
+                        except (TimeoutError, asyncio.CancelledError):
                             if (
                                 sys.version_info >= (3, 11)
                                 and (t := asyncio.current_task())
@@ -690,7 +689,7 @@ class RequestHandler(BaseProtocol):
                 self.log_exception("Missing return statement on request handler")
             else:
                 self.log_exception(
-                    "Web-handler should return a response instance, " f"got {resp!r}"
+                    f"Web-handler should return a response instance, got {resp!r}"
                 )
             exc = HTTPInternalServerError()
             resp = Response(

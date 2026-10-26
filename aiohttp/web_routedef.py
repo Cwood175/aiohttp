@@ -20,22 +20,24 @@ else:
 __all__ = (
     "AbstractRouteDef",
     "RouteDef",
-    "StaticDef",
     "RouteTableDef",
+    "StaticDef",
+    "delete",
+    "get",
     "head",
     "options",
-    "get",
-    "post",
     "patch",
+    "post",
     "put",
-    "delete",
     "route",
-    "view",
     "static",
+    "view",
 )
 
 
 class AbstractRouteDef(abc.ABC):
+    __slots__ = ()
+
     @abc.abstractmethod
     def register(self, router: UrlDispatcher) -> list[AbstractRoute]:
         pass  # pragma: no cover
